@@ -10,8 +10,12 @@ import {
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 
+
 export default function Team() {
-  const { project } = useApp();
+  const { project , demoRole } = useApp();
+  const canManageTeam = demoRole === "builder";
+  const [editingMember, setEditingMember] = useState(null);
+  const [editedRole, setEditedRole] = useState("");
   const [search, setSearch] = useState("");
     const [showInvite, setShowInvite] = useState(false);
     const [inviteName, setInviteName] = useState("");
@@ -23,42 +27,47 @@ export default function Team() {
             current.filter((invite) => invite.id !== id)
         );
     };
+    const removeMember = (id) => {
+      setTeamMembers((current) =>
+        current.filter((member) => member.id !== id)
+      );
+    };
     const [selectedMember, setSelectedMember] = useState(null);
 
-  const teamMembers = [
-    {
-      id: 1,
-      name: "Priya Sharma",
-      email: "priya.sharma@example.com",
-      role: "Engineer",
-      status: "Active",
-      initials: "PS",
-    },
-    {
-      id: 2,
-      name: "Arjun Patil",
-      email: "arjun.patil@example.com",
-      role: "Contractor",
-      status: "Active",
-      initials: "AP",
-    },
-    {
-      id: 3,
-      name: "Neha Kulkarni",
-      email: "neha.kulkarni@example.com",
-      role: "Project Manager",
-      status: "Active",
-      initials: "NK",
-    },
-    {
-      id: 4,
-      name: "Rahul Mehta",
-      email: "rahul.mehta@example.com",
-      role: "Viewer",
-      status: "Active",
-      initials: "RM",
-    },
-  ];
+  const [teamMembers, setTeamMembers] = useState([
+  {
+    id: 1,
+    name: "Priya Sharma",
+    email: "priya.sharma@example.com",
+    role: "Engineer",
+    status: "Active",
+    initials: "PS",
+  },
+  {
+    id: 2,
+    name: "Arjun Patil",
+    email: "arjun.patil@example.com",
+    role: "Contractor",
+    status: "Active",
+    initials: "AP",
+  },
+  {
+    id: 3,
+    name: "Neha Kulkarni",
+    email: "neha.kulkarni@example.com",
+    role: "Project Manager",
+    status: "Active",
+    initials: "NK",
+  },
+  {
+    id: 4,
+    name: "Rahul Mehta",
+    email: "rahul.mehta@example.com",
+    role: "Viewer",
+    status: "Active",
+    initials: "RM",
+  },
+]);
 
   const allMembers = [...teamMembers, ...pendingInvites];
 
@@ -79,14 +88,16 @@ export default function Team() {
           </p>
         </div>
 
-        <button
-            className="button button-primary"
+        {canManageTeam && (
+          <button
+            className="primary-button"
             type="button"
             onClick={() => setShowInvite(true)}
-            >
-          <UserPlus size={17} />
-          Invite Member
-        </button>
+          >
+            <UserPlus size={17} />
+            Invite Member
+          </button>
+        )}
       </div>
 
       <div className="team-project-strip">
@@ -194,26 +205,50 @@ export default function Team() {
                     </button>
 
                     {selectedMember === member.id && (
-                        <div className="team-action-menu">
+                      <div className="team-action-menu">
                         <button
-                            type="button"
-                            onClick={() => {
+                          type="button"
+                          onClick={() => {
                             alert(`Member: ${member.name}\nRole: ${member.role}`);
                             setSelectedMember(null);
-                            }}
+                          }}
                         >
-                            View member
+                          View member
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                            alert("Role editing will be added next.");
-                            setSelectedMember(null);
-                            }}
-                        >
-                            Edit role
-                        </button>
-                        </div>
+
+                        {canManageTeam && (
+                          <>
+                            <button
+                              type="button"
+                              className="team-remove-option"
+                              onClick={() => {
+                                const confirmed = window.confirm(
+                                  `Remove ${member.name} from this project?`
+                                );
+
+                                if (confirmed) {
+                                  removeMember(member.id);
+                                }
+
+                                setSelectedMember(null);
+                              }}
+                            >
+                              Remove member
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingMember(member);
+                                setEditedRole(member.role);
+                                setSelectedMember(null);
+                              }}
+                            >
+                              Edit role
+                            </button>
+                          </>
+                        )}
+                      </div>
                     )}
                     </div>
                 )}
@@ -311,18 +346,80 @@ export default function Team() {
                 <div className="team-modal-actions">
                 <button
                     type="button"
-                    className="button button-secondary"
+                    className="secondary-button"
                     onClick={() => setShowInvite(false)}
                 >
                     Cancel
                 </button>
-                <button type="submit" className="button button-primary">
+                <button type="submit" className="primary-button">
                     Continue
                 </button>
                 </div>
             </form>
             </div>
         </div>
+        )}
+        {editingMember && (
+          <div className="team-modal-backdrop">
+            <div className="team-modal">
+              <div className="team-modal-header">
+                <div>
+                  <h3>Edit Member Role</h3>
+                  <p>{editingMember.name}</p>
+                </div>
+                <button
+                  type="button"
+                  className="team-modal-close"
+                  onClick={() => setEditingMember(null)}
+                  aria-label="Close role editor"
+                >
+                  ×
+                </button>
+              </div>
+
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+
+                  setTeamMembers((current) =>
+                    current.map((member) =>
+                      member.id === editingMember.id
+                        ? { ...member, role: editedRole }
+                        : member
+                    )
+                  );
+
+                  setEditingMember(null);
+                }}
+              >
+                <label>
+                  Project role
+                  <select
+                    value={editedRole}
+                    onChange={(event) => setEditedRole(event.target.value)}
+                  >
+                    <option>Engineer</option>
+                    <option>Contractor</option>
+                    <option>Project Manager</option>
+                    <option>Viewer</option>
+                  </select>
+                </label>
+
+                <div className="team-modal-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => setEditingMember(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="primary-button">
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
     </div>
   );
